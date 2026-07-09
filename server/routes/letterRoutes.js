@@ -1,11 +1,8 @@
 import express from "express";
+import { generateLetter } from "../controllers/letterController.js";
 
 const router = express.Router();
 
-router.post("/generate-letter", (req, res) => {
-  res.status(200).json({
-    message: "Letter route is working",
-  });
-});
+router.post("/generate-letter", generateLetter);
 
 export default router;
