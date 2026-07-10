@@ -4,9 +4,9 @@ import { makePrompt } from "../helpers/makePrompt.js";
 function makeFallbackLetter(data) {
   return `Dear Hiring Manager at ${data.company},
 
-I am ${data.name}, and I am interested in applying for the ${data.role} position at ${data.company}. My key skills include ${data.skills}, and I am eager to contribute with a practical, learning-focused, and responsible approach.
+I am ${data.name}, and I am interested in applying for the ${data.role} position at ${data.company}. My key skills include ${data.skills}, and I am ready to use them in a practical work environment.
 
-I believe this role will allow me to apply my current skills while continuing to improve through real project work. I would be grateful for the opportunity to discuss how I can contribute to your team.
+I am looking forward to learning from real projects and contributing to the team with a responsible approach.
 
 Thank you for considering my application.
 
@@ -50,8 +50,9 @@ export async function generateLetter(req, res) {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
     const model = genAI.getGenerativeModel({
-     model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash",
     });
 
     const result = await model.generateContent(makePrompt(formData));
