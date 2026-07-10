@@ -5,6 +5,8 @@ import Message from "./components/Message";
 import { cleanInput } from "./utils/cleanInput";
 import { checkForm } from "./utils/checkForm";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const defaultForm = {
   name: "",
   role: "",
@@ -65,7 +67,7 @@ function App() {
     });
 
     try {
-      const response = await fetch("http://localhost:5000/api/generate-letter", {
+      const response = await fetch(`${API_URL}/api/generate-letter`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -97,7 +99,7 @@ function App() {
     } catch {
       setMessage({
         type: "error",
-        text: "Something went wrong. Please check the server and try again.",
+        text: "Something went wrong. Please try again after some time.",
       });
     } finally {
       setIsLoading(false);
