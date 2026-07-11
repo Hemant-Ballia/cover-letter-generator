@@ -1,19 +1,22 @@
 {
-  "name": "server",
+  "name": "cover-letter-generator-server",
   "version": "1.0.0",
+  "description": "Backend API for the cover letter generator",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "dev": "nodemon server.js",
-    "server": "nodemon server.js",
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "express",
+    "gemini",
+    "cover-letter"
+  ],
+  "author": "Hemant Chauhan",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^2.11.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"
