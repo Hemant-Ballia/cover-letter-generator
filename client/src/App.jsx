@@ -5,17 +5,22 @@ import Message from "./components/Message";
 import { cleanInput } from "./utils/cleanInput";
 import { checkForm } from "./utils/checkForm";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/$/, "");
 
-const defaultForm = {
+const REQUEST_TIMEOUT = 30000;
+
+const initialFormData = {
   name: "",
   role: "",
   company: "",
   skills: "",
+  jobDescription: "",
 };
 
 function App() {
-  const [formData, setFormData] = useState(defaultForm);
+  const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [letter, setLetter] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,25 +32,32 @@ function App() {
   function handleChange(event) {
     const { name, value } = event.target;
 
-    setFormData((prevData) => ({
-      ...prevData,
+    setFormData((previousData) => ({
+      ...previousData,
       [name]: value,
     }));
 
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      [name]: "",
-    }));
+    if (errors[name]) {
+      setErrors((previousErrors) => ({
+        ...previousErrors,
+        [name]: "",
+      }));
+    }
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (isLoading) {
+      return;
+    }
 
     const cleanedData = {
       name: cleanInput(formData.name),
       role: cleanInput(formData.role),
       company: cleanInput(formData.company),
       skills: cleanInput(formData.skills),
+      jobDescription: cleanInput(formData.jobDescription),
     };
 
     const formErrors = checkForm(cleanedData);
@@ -54,34 +66,71 @@ function App() {
       setErrors(formErrors);
       setMessage({
         type: "error",
-        text: "Please fill all required fields correctly.",
+        text: "Please fill in all required fields correctly.",
       });
       return;
     }
 
-    setIsLoading(true);
+    setErrors({});
     setLetter("");
+    setIsLoading(true);
     setMessage({
       type: "loading",
       text: "Generating your cover letter...",
     });
 
-    try {
-      const response = await fetch(`${API_URL}/api/generate-letter`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(cleanedData),
-      });
+    const controller = new AbortController();
 
-      const data = await response.json();
+    const timeoutId = window.setTimeout(() => {
+      controller.abort();
+    }, REQUEST_TIMEOUT);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/generate-letter`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(cleanedData),
+          signal: controller.signal,
+        },
+      );
+
+      const contentType =
+        response.headers.get("content-type") || "";
+
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : {};
 
       if (!response.ok) {
-        throw new Error(data.message || "Unable to generate cover letter.");
+        if (Array.isArray(data.fields)) {
+          const serverErrors = {};
+
+          data.fields.forEach((field) => {
+            serverErrors[field] = "This field is required.";
+          });
+
+          setErrors(serverErrors);
+        }
+
+        setMessage({
+          type: "error",
+          text:
+            data.message ||
+            "Unable to generate the cover letter.",
+        });
+        return;
       }
 
-      if (!data.letter) {
+      const generatedLetter =
+        typeof data.letter === "string"
+          ? data.letter.trim()
+          : "";
+
+      if (!generatedLetter) {
         setMessage({
           type: "error",
           text: "No cover letter was generated. Please try again.",
@@ -89,25 +138,40 @@ function App() {
         return;
       }
 
-      setLetter(data.letter);
-      setMessage({
-        type: "success",
-        text: "Cover letter generated successfully.",
-      });
+      setLetter(generatedLetter);
 
-      console.log("[Analytics] User generated a cover letter");
-    } catch {
+      if (data.source === "gemini") {
+        setMessage({
+          type: "success",
+          text: "Cover letter generated successfully.",
+        });
+      } else {
+        setMessage({
+          type: "info",
+          text:
+            data.message ||
+            "A template cover letter was generated.",
+        });
+      }
+    } catch (error) {
+      const isTimeout = error.name === "AbortError";
+
       setMessage({
         type: "error",
-        text: "Something went wrong. Please try again after some time.",
+        text: isTimeout
+          ? "The AI service is taking longer than expected. Please try again."
+          : "Could not connect to the server. Please try again.",
       });
     } finally {
+      window.clearTimeout(timeoutId);
       setIsLoading(false);
     }
   }
 
   async function handleCopy() {
-    if (!letter) return;
+    if (!letter) {
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(letter);
@@ -116,8 +180,6 @@ function App() {
         type: "success",
         text: "Cover letter copied to clipboard.",
       });
-
-      console.log("[Analytics] User copied cover letter");
     } catch {
       setMessage({
         type: "error",
@@ -129,13 +191,13 @@ function App() {
   return (
     <main className="page">
       <section className="app-shell">
-        <div className="intro">
+        <header className="intro">
           <h1>Cover Letter Generator</h1>
           <p>
-            Enter candidate details and generate a professional cover letter for
-            a job application.
+            Enter candidate details and generate a professional
+            cover letter for a job application.
           </p>
-        </div>
+        </header>
 
         <Message message={message} />
 
