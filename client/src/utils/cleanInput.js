@@ -1,3 +1,6 @@
 export function cleanInput(value) {
-  return value.replace(/[<>]/g, "").trim();
+  return String(value ?? "")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }

@@ -3,10 +3,16 @@ function Message({ message }) {
     return null;
   }
 
+  const messageRole =
+    message.type === "error" ? "alert" : "status";
+
   return (
-    <div className={`message ${message.type}`} aria-live="polite">
+    <p
+      className={`message ${message.type}`}
+      role={messageRole}
+    >
       {message.text}
-    </div>
+    </p>
   );
 }
 
